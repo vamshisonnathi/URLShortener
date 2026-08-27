@@ -64,6 +64,6 @@ misuse, resource exhaustion, and secret handling.
 
 ```bash
 npm run lint     # tsc --noEmit (strict types)
-npm test         # 25 unit + integration tests
+npm test         # 28 unit + integration tests
 npm audit        # dependency vulnerability scan (run in CI)
 ```

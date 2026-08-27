@@ -242,7 +242,7 @@ npm run prisma:migrate      # apply schema to the test DB
 npm test
 ```
 
-**Current status:** 26 tests across 4 files, all passing.
+**Current status:** 28 tests across 5 files, all passing.
 
 ### Test inventory
 
@@ -283,7 +283,14 @@ npm test
 - **not found / expired:** unknown code → `404`; a link with past `expiresAt` →
   `410`
 - **bad input:** `ftp://` URL → `400 VALIDATION_ERROR`
-- **health:** `/health` → `200` with `db: up`
+- **health (healthy):** `/health` → `200` with `db: up`
+- **health (Redis down):** Redis disconnected → `/health` still `200`,
+  `status: ok`, `db: up`, `redis: down` — the graceful-degradation contract
+
+`tests/health.test.ts` — dependency-down contract in an isolated module (bad
+`DATABASE_URL`):
+- **health (DB down):** database unreachable → `/health` → `503`, `status: error`,
+  `db: down`
 
 Integration tests connect using `DATABASE_URL` (defaults to the compose Postgres
 on `localhost:5432`) and clean up the rows they create.

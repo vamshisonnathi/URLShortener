@@ -47,7 +47,7 @@ The spec was detailed but left a few things implicit; resolved before coding:
   one round-trip).
 
 ### Validation
-- 25 automated tests (unit + integration), all passing.
+- 28 automated tests (unit + integration), all passing.
 - Live smoke test through Docker: `shorten → 302 → analytics`, plus `400/404/410/
   409/429`, `/health`, and a Redis-down degradation run (still `200`, no `500`).
 - Quality gates: `tsc --noEmit` clean, `vitest` green — see

@@ -69,7 +69,7 @@ GET /health       → DB + Redis pings; 200 if DB up (Redis down = degraded, not
 | Runnable prototype (Docker) | `docker-compose.yml`, `Dockerfile`, `docker-entrypoint.sh` |
 | Source | `src/**` |
 | Schema + migration | `prisma/schema.prisma`, `prisma/migrations/**` |
-| Tests (25) | `tests/**` |
+| Tests (28) | `tests/**` |
 | Sample data | `prisma/seed.ts` (`npm run db:seed`) |
 | API ref / setup / commands / testing | `README.md` |
 | Three scenarios | `SCENARIOS.md` |
@@ -85,7 +85,7 @@ GET /health       → DB + Redis pings; 200 if DB up (Redis down = degraded, not
 |------|------|--------|
 | Static analysis / types | `tsc --noEmit` (strict) | Clean |
 | Unit tests | Vitest | 21 passing (base62, validation, expiry) |
-| Integration tests | Vitest + real Postgres | 5 passing (full flow, 409/404/410/400, health) |
+| Integration tests | Vitest + real Postgres | 7 passing (full flow, 409/404/410/400, health, DB-down→503, Redis-down→200 degraded) |
 | No-bias proof | chi-square on base62 | χ² well under threshold |
 | Runtime smoke | curl vs. Docker stack | shorten/redirect/analytics/health verified |
 | Degradation | Redis killed | `200`/`201`/`302` — no `500` |

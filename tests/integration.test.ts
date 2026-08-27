@@ -160,4 +160,16 @@ describe('shorten -> redirect -> analytics', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().checks.db).toBe('up');
   });
+
+  it('health returns 200 (degraded) when Redis is down but DB is up', async () => {
+    // Force the Redis-outage path: the app must degrade to Postgres and report
+    // redis:"down" WITHOUT failing health (DB is the source of truth).
+    redis.disconnect();
+    const res = await app.inject({ method: 'GET', url: '/health' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.status).toBe('ok');
+    expect(body.checks.db).toBe('up');
+    expect(body.checks.redis).toBe('down');
+  });
 });
