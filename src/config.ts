@@ -1,0 +1,34 @@
+import { z } from 'zod';
+
+// Parse + validate all config at startup. Fail fast on misconfiguration.
+const EnvSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().positive().default(3000),
+  HOST: z.string().default('0.0.0.0'),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+    .default('info'),
+  SHORT_URL_BASE: z.string().url().default('http://localhost:3000'),
+  DATABASE_URL: z.string().min(1),
+  REDIS_URL: z.string().min(1),
+  CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
+  RATE_LIMIT_CAPACITY: z.coerce.number().int().positive().default(20),
+  RATE_LIMIT_REFILL_PER_SEC: z.coerce.number().positive().default(1),
+});
+
+export type Config = z.infer<typeof EnvSchema> & { SHORT_URL_BASE: string };
+
+function load(): Config {
+  const parsed = EnvSchema.safeParse(process.env);
+  if (!parsed.success) {
+    // Surface the exact missing/invalid keys, then abort.
+    console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
+    throw new Error('Invalid environment configuration');
+  }
+  // Normalize: strip trailing slash from the public base.
+  const cfg = parsed.data;
+  cfg.SHORT_URL_BASE = cfg.SHORT_URL_BASE.replace(/\/+$/, '');
+  return cfg;
+}
+
+export const config = load();

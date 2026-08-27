@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Link {
+  id          BigInt    @id @default(autoincrement())
+  shortCode   String    @unique @map("short_code")
+  originalUrl String    @map("original_url")
+  customAlias String?   @map("custom_alias")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  expiresAt   DateTime? @map("expires_at")
+  isActive    Boolean   @default(true) @map("is_active")
+
+  clicks Click[]
+
+  @@index([expiresAt])
+  @@map("links")
+}
+
+model Click {
+  id        BigInt   @id @default(autoincrement())
+  linkId    BigInt   @map("link_id")
+  clickedAt DateTime @default(now()) @map("clicked_at")
+  referrer  String?
+  userAgent String?  @map("user_agent")
+  ipCountry String   @default("XX") @map("ip_country")
+
+  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  // Composite index powers analytics aggregation (WHERE link_id + range on clicked_at).
+  @@index([linkId, clickedAt])
+  @@map("clicks")
+}

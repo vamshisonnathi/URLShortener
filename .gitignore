@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+*.log
+coverage
+
+# Redis dump written when running redis-server locally
+dump.rdb
+*.rdb
