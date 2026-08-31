@@ -50,7 +50,13 @@ Production-grade URL shortener: Node.js + TypeScript + Fastify + PostgreSQL (Pri
 | Watch tests | `npm run test:watch` |
 | Verify 3 scenarios (live) | `./scripts/verify-scenarios.sh` |
 
-The API listens on `http://localhost:3000` in every mode.
+The API and Web UI listen on `http://localhost:3000` in every mode.
+
+### Web UI
+Open `http://localhost:3000` in your browser for a graphical interface to:
+- Create short links with optional custom aliases and expiration dates.
+- Copy short URLs with one click and test 302 redirects.
+- Inspect click analytics (total clicks, referrers, countries, clicks by day).
 
 ---
 
@@ -62,8 +68,7 @@ docker compose up --build
 ```
 
 This starts Postgres, Redis, and the app. Migrations run automatically on boot
-(`prisma migrate deploy` via the entrypoint). The API is then at
-`http://localhost:3000`.
+(`prisma migrate deploy` via the entrypoint). The Web UI and API are then available at `http://localhost:3000`.
 
 Smoke test:
 

@@ -7,6 +7,8 @@ import { redirectRoutes } from './routes/redirect.js';
 import { analyticsRoutes } from './routes/analytics.js';
 import { healthRoutes } from './routes/health.js';
 
+import { uiRoutes } from './routes/ui.js';
+
 export function buildApp(): FastifyInstance {
   const app = Fastify({
     // Fastify's built-in logger IS pino; configure it directly so it builds a
@@ -24,11 +26,12 @@ export function buildApp(): FastifyInstance {
     requestIdLogLabel: 'reqId',
   });
 
+  app.register(uiRoutes);
   app.register(healthRoutes);
   app.register(shortenRoutes);
   app.register(analyticsRoutes);
   // Redirect route is a catch-all `/:shortCode`; register last so it never
-  // shadows the more specific /api and /health routes.
+  // shadows the more specific /api, /health, and / routes.
   app.register(redirectRoutes);
 
   app.setErrorHandler((err, request, reply) => {
