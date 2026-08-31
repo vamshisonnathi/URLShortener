@@ -1,7 +1,12 @@
+/**
+ * @file Web UI Integration Test Suite
+ * @description Verifies that the Web Application landing page (`GET /`) is served cleanly with HTTP 200 OK and HTML content.
+ */
+
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
-// Configure env BEFORE importing modules that read it at load time.
+// Configure environment BEFORE importing modules that read process.env at load time.
 process.env.NODE_ENV ??= 'test';
 process.env.DATABASE_URL ??= 'postgresql://postgres:postgres@localhost:5432/urlshortener?schema=public';
 process.env.REDIS_URL ??= 'redis://localhost:6379';

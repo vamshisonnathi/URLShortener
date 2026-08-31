@@ -1,20 +1,44 @@
+/**
+ * @file Redis Read-Through Cache Service
+ * @description High-performance caching layer for short code lookups with graceful fallback on Redis failure.
+ * @module services/cache
+ */
+
 import { redis, redisAvailable } from '../redis.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
-// Cached resolution of a short code. Includes linkId + expiry so the redirect
-// path can validate expiry and record a click without a second DB round-trip.
+/**
+ * Structure of a cached short link entry stored in Redis.
+ * Includes `linkId` and `expiresAt` so redirects avoid secondary database lookups.
+ */
 export interface CachedLink {
-  linkId: string; // BigInt serialized as string
+  /** Database BigInt primary key serialized as a string. */
+  linkId: string;
+  /** Original destination URL. */
   originalUrl: string;
-  expiresAt: string | null; // ISO-8601 or null
+  /** Expiration timestamp in ISO-8601 string format, or `null`. */
+  expiresAt: string | null;
+  /** Link active status. */
   isActive: boolean;
 }
 
+/**
+ * Constructs a Redis cache key for a given short code.
+ *
+ * @param code - The short code string.
+ * @returns Formatted Redis key (e.g. `link:aZ3kR9p`).
+ */
 function key(code: string): string {
   return `link:${code}`;
 }
 
+/**
+ * Retrieves a cached link resolution payload from Redis.
+ *
+ * @param code - The short code to look up.
+ * @returns Promise resolving to `CachedLink` if found in cache, or `null` if missed/unavailable.
+ */
 export async function getCachedLink(code: string): Promise<CachedLink | null> {
   if (!redisAvailable()) return null;
   try {
@@ -26,11 +50,18 @@ export async function getCachedLink(code: string): Promise<CachedLink | null> {
   }
 }
 
+/**
+ * Stores a link resolution payload in Redis with bounded TTL.
+ *
+ * The cache TTL is set to `min(CACHE_TTL_SECONDS, secondsToExpiry)` to guarantee
+ * that expired links are evicted immediately upon passing their expiration date.
+ *
+ * @param code - The short code string.
+ * @param link - The link metadata to cache.
+ */
 export async function setCachedLink(code: string, link: CachedLink): Promise<void> {
   if (!redisAvailable()) return;
   try {
-    // TTL is bounded by both the configured max and the link's own expiry so we
-    // never serve a stale entry past expiration.
     let ttl = config.CACHE_TTL_SECONDS;
     if (link.expiresAt) {
       const secondsToExpiry = Math.floor((new Date(link.expiresAt).getTime() - Date.now()) / 1000);
@@ -43,6 +74,11 @@ export async function setCachedLink(code: string, link: CachedLink): Promise<voi
   }
 }
 
+/**
+ * Deletes a cached link entry from Redis (e.g. upon link update or deactivation).
+ *
+ * @param code - The short code string to invalidate.
+ */
 export async function invalidateCachedLink(code: string): Promise<void> {
   if (!redisAvailable()) return;
   try {

@@ -1,13 +1,15 @@
+/**
+ * @file End-to-End HTTP Integration Test Suite
+ * @description Integration tests covering shorten -> redirect (302) -> analytics flow, custom alias conflicts, 404/410 handling, and graceful degradation.
+ */
+
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
 // Configure env BEFORE importing modules that read it at load time.
-// Point at the docker-compose Postgres (localhost) unless overridden.
 process.env.NODE_ENV ??= 'test';
 process.env.DATABASE_URL ??=
   'postgresql://postgres:postgres@localhost:5432/urlshortener?schema=public';
-// Use a DB name that is unlikely to collide with real Redis keys; Redis is
-// optional here — if it is down the app degrades to Postgres.
 process.env.REDIS_URL ??= 'redis://localhost:6379';
 process.env.SHORT_URL_BASE ??= 'http://localhost:3000';
 process.env.LOG_LEVEL ??= 'silent';

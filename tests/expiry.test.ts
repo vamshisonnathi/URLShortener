@@ -1,3 +1,8 @@
+/**
+ * @file Expiry & Servability Logic Unit Test Suite
+ * @description Unit tests for evaluating link expiration status and servable eligibility logic.
+ */
+
 import { describe, it, expect } from 'vitest';
 import { isExpired, isServable } from '../src/lib/expiry.js';
 

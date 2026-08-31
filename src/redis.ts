@@ -1,13 +1,20 @@
+/**
+ * @file Redis Connection & Liveness Management
+ * @description Configures ioredis connection with lazy initialization, event listeners, and liveness probing.
+ * @module redis
+ */
+
 import { Redis } from 'ioredis';
 import { config } from './config.js';
 import { logger } from './logger.js';
 
-// Single shared connection. `lazyConnect` lets the process boot even when Redis
-// is down; callers must treat Redis as best-effort and fall back to Postgres.
+/**
+ * Singleton ioredis client instance configured for lazy connection.
+ * Permits application startup even if Redis is temporarily unreachable.
+ */
 export const redis = new Redis(config.REDIS_URL, {
   lazyConnect: true,
   maxRetriesPerRequest: 1,
-  // Keep reconnecting in the background; degrade gracefully in the meantime.
   retryStrategy: (times) => Math.min(times * 200, 2000),
 });
 
@@ -21,16 +28,23 @@ redis.on('end', () => {
   ready = false;
 });
 redis.on('error', (err) => {
-  // Rate-limited by ioredis internally; log at warn to avoid masking real issues.
   ready = false;
   logger.warn({ err: err.message }, 'redis error');
 });
 
+/**
+ * Checks whether the shared Redis connection is alive and in `ready` state.
+ *
+ * @returns `true` if Redis is connected and ready to accept commands, otherwise `false`.
+ */
 export function redisAvailable(): boolean {
   return ready && redis.status === 'ready';
 }
 
-// Attempt an initial connection but never block startup on it.
+/**
+ * Attempts non-blocking initial connection to Redis during server bootstrap.
+ * Swallows connection errors to allow server startup with graceful PostgreSQL degradation.
+ */
 export async function initRedis(): Promise<void> {
   try {
     await redis.connect();
@@ -39,6 +53,11 @@ export async function initRedis(): Promise<void> {
   }
 }
 
+/**
+ * Performs a `PING` health check against Redis.
+ *
+ * @returns Promise resolving to `true` if Redis responds with `'PONG'`, otherwise `false`.
+ */
 export async function pingRedis(): Promise<boolean> {
   try {
     if (!redisAvailable()) return false;

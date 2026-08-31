@@ -1,6 +1,15 @@
+/**
+ * @file Application Configuration Loader
+ * @description Validates and parses environment variables at application startup using Zod schema validation.
+ * @module config
+ */
+
 import { z } from 'zod';
 
-// Parse + validate all config at startup. Fail fast on misconfiguration.
+/**
+ * Zod schema defining required and optional environment variables.
+ * Fails fast on startup if mandatory variables (such as `DATABASE_URL` or `REDIS_URL`) are missing.
+ */
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -16,19 +25,26 @@ const EnvSchema = z.object({
   RATE_LIMIT_REFILL_PER_SEC: z.coerce.number().positive().default(1),
 });
 
+/** Strongly typed application configuration object inferred from `EnvSchema`. */
 export type Config = z.infer<typeof EnvSchema> & { SHORT_URL_BASE: string };
 
+/**
+ * Parses and validates `process.env` against `EnvSchema`.
+ * Normalizes `SHORT_URL_BASE` by stripping any trailing slash.
+ *
+ * @returns Validated `Config` instance.
+ * @throws {Error} If environment validation fails.
+ */
 function load(): Config {
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {
-    // Surface the exact missing/invalid keys, then abort.
     console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
     throw new Error('Invalid environment configuration');
   }
-  // Normalize: strip trailing slash from the public base.
   const cfg = parsed.data;
   cfg.SHORT_URL_BASE = cfg.SHORT_URL_BASE.replace(/\/+$/, '');
   return cfg;
 }
 
+/** Frozen, validated global application configuration instance. */
 export const config = load();

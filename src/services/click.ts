@@ -1,20 +1,34 @@
+/**
+ * @file Asynchronous Click Tracking Service
+ * @description Non-blocking, fire-and-forget click persistence for HTTP redirects.
+ * @module services/click
+ */
+
 import { prisma } from '../db.js';
 import { logger } from '../logger.js';
 
+/**
+ * Click attribution data captured during a short link redirect.
+ */
 export interface ClickData {
-  linkId: string; // BigInt as string
+  /** Target link's database BigInt primary key (as string). */
+  linkId: string;
+  /** HTTP Referer header string, or `null` if direct/none. */
   referrer: string | null;
+  /** User-Agent header string, or `null`. */
   userAgent: string | null;
+  /** ISO alpha-2 country code (e.g. `US`, `DE`), defaulting to `XX`. */
   ipCountry: string;
 }
 
 /**
- * Guarded, non-blocking click write. Callers invoke WITHOUT awaiting so the
- * redirect response is never delayed by analytics persistence. Any failure is
- * logged and swallowed — a lost click must never break a redirect.
+ * Records a link click event asynchronously in the database.
  *
- * Deferred upgrade path (out of scope): under high write load, replace this
- * direct INSERT with a push to Redis Streams drained by a batch worker.
+ * Invoked **without awaiting** on the HTTP redirect route path to ensure that analytics logging
+ * never adds latency to user redirects. Exceptions are caught and logged so that database write errors
+ * never crash or delay HTTP 302 responses.
+ *
+ * @param data - Click attribution fields (`linkId`, `referrer`, `userAgent`, `ipCountry`).
  */
 export function recordClick(data: ClickData): void {
   prisma.click

@@ -1,6 +1,19 @@
+/**
+ * @file Request Validation Schemas
+ * @description Zod validation schemas for URL shortening payloads, custom alias constraints, and path parameters.
+ * @module lib/validation
+ */
+
 import { z } from 'zod';
 
-// Only http/https URLs are acceptable targets for a public redirector.
+/**
+ * Validates that a string is a well-formed HTTP or HTTPS URL.
+ *
+ * Rejects non-HTTP schemes (e.g. ftp://, javascript:, file://) to prevent XSS and SSRF risks.
+ *
+ * @param value - The candidate URL string to validate.
+ * @returns `true` if valid `http:` or `https:`, otherwise `false`.
+ */
 function isHttpUrl(value: string): boolean {
   let parsed: URL;
   try {
@@ -11,20 +24,34 @@ function isHttpUrl(value: string): boolean {
   return parsed.protocol === 'http:' || parsed.protocol === 'https:';
 }
 
-// Alias must be URL-path-safe and distinguishable from generated codes.
-// Allow unreserved chars; length bounded to keep short links short.
+/** Regular expression defining valid custom alias characters and length (3-32 chars of [A-Za-z0-9_-]). */
 const ALIAS_RE = /^[A-Za-z0-9_-]{3,32}$/;
 
-// Reserved top-level path segments. A custom alias equal to one of these would
-// be shadowed by a more specific route (`/:shortCode` is registered last), so
-// the link would 201 but never resolve. Reject them up front. Keep in sync with
-// the top-level routes registered in src/app.ts.
+/**
+ * Set of top-level reserved path segments that cannot be claimed as custom aliases.
+ * Prevents alias collisions with system routes (`/health`, `/api`).
+ */
 export const RESERVED_ALIASES = new Set(['health', 'api']);
 
+/**
+ * Checks whether a candidate alias matches a reserved system route.
+ *
+ * @param alias - The custom alias string.
+ * @returns `true` if reserved, otherwise `false`.
+ */
 function isReservedAlias(alias: string): boolean {
   return RESERVED_ALIASES.has(alias.toLowerCase());
 }
 
+/**
+ * Zod schema for validating `POST /api/shorten` request bodies.
+ *
+ * Enforces:
+ * - `url`: Required valid HTTP/HTTPS URL.
+ * - `customAlias`: Optional 3-32 character alias, not matching reserved route names.
+ * - `expiresAt`: Optional ISO-8601 timestamp in the future.
+ * - `.strict()`: Rejects unexpected payload properties.
+ */
 export const ShortenBodySchema = z
   .object({
     url: z
@@ -57,9 +84,12 @@ export const ShortenBodySchema = z
     }
   });
 
+/** Inferred TypeScript type for validated URL shortening request bodies. */
 export type ShortenBody = z.infer<typeof ShortenBodySchema>;
 
-// Path param: either a generated 7-char base62 code or a custom alias.
+/**
+ * Zod schema for validating short code path parameters (`/:shortCode`).
+ */
 export const ShortCodeParamSchema = z.object({
   shortCode: z.string().regex(/^[A-Za-z0-9_-]{3,32}$/, 'invalid short code'),
 });

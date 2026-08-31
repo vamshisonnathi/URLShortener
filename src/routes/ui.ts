@@ -1,5 +1,12 @@
+/**
+ * @file Web Application User Interface Route Handler
+ * @description Serves the interactive Single-Page Application (SPA) for link shortening and analytics inspection at `GET /`.
+ * @module routes/ui
+ */
+
 import type { FastifyInstance } from 'fastify';
 
+/** HTML, CSS, and client-side JavaScript content for the Web UI. */
 const HTML_CONTENT = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -702,6 +709,14 @@ const HTML_CONTENT = `<!DOCTYPE html>
 </body>
 </html>`;
 
+/**
+ * Registers Web UI HTTP endpoints on the Fastify instance.
+ *
+ * Route: `GET /`
+ * - 200 OK: Serves the single-page HTML/CSS/JS application (`text/html`).
+ *
+ * @param app - The Fastify application instance.
+ */
 export async function uiRoutes(app: FastifyInstance): Promise<void> {
   app.get('/', async (_request, reply) => {
     return reply.type('text/html').send(HTML_CONTENT);

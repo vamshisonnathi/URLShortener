@@ -1,10 +1,17 @@
+/**
+ * @file Atomic Token-Bucket Rate Limiter Service
+ * @description Single-roundtrip Redis Lua script implementing per-IP token bucket rate limiting.
+ * @module services/rateLimit
+ */
+
 import { redis, redisAvailable } from '../redis.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
-// Atomic token-bucket in one round-trip. Refills based on wall-clock elapsed
-// since the last request, caps at capacity, and consumes one token if present.
-// Returns { allowed, remaining, retryAfter(seconds) }.
+/**
+ * Single-roundtrip Redis Lua script implementing an atomic token bucket rate limiter.
+ * Refills tokens based on elapsed wall-clock time, caps at capacity, and consumes a token.
+ */
 const TOKEN_BUCKET_LUA = `
 local key        = KEYS[1]
 local capacity   = tonumber(ARGV[1])
@@ -43,18 +50,33 @@ end
 return { allowed, math.floor(tokens), retry_after }
 `;
 
+/**
+ * Result structure returned by rate limiter token consumption.
+ */
 export interface RateLimitResult {
+  /** Whether the request is permitted. */
   allowed: boolean;
+  /** Number of remaining tokens in the bucket. */
   remaining: number;
-  retryAfter: number; // seconds
+  /** Time in seconds until a new token is available (0 if allowed). */
+  retryAfter: number;
+  /** Maximum token capacity of the bucket. */
   limit: number;
 }
 
+/**
+ * Consumes a rate limit token for a specific client IP address.
+ *
+ * Implements graceful degradation: if Redis is down or throws an error, the rate limiter
+ * fails open (`allowed: true`) and logs a warning to prevent database/Redis outages from blocking traffic.
+ *
+ * @param ip - Client IP address string.
+ * @returns Promise resolving to `RateLimitResult`.
+ */
 export async function consumeToken(ip: string): Promise<RateLimitResult> {
   const limit = config.RATE_LIMIT_CAPACITY;
 
-  // Graceful degradation: if Redis is unreachable, allow the request rather
-  // than returning 500. Log so the gap is observable.
+  // Graceful degradation: if Redis is unreachable, allow the request rather than returning 500.
   if (!redisAvailable()) {
     logger.warn({ ip }, 'rate limiter unavailable (redis down); allowing request');
     return { allowed: true, remaining: limit, retryAfter: 0, limit };

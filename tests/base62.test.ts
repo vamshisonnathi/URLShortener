@@ -1,3 +1,8 @@
+/**
+ * @file Base62 Generator Unit Test Suite
+ * @description Verifies code length, character alphabet membership, collision-free uniqueness, and Chi-Square statistical uniformity (no modulo bias).
+ */
+
 import { describe, it, expect } from 'vitest';
 import {
   generateCode,

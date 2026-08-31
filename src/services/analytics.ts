@@ -1,18 +1,41 @@
+/**
+ * @file Analytics Aggregation Service
+ * @description Serves indexed SQL analytical aggregations (clicks by day, top referrers, top countries).
+ * @module services/analytics
+ */
+
 import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 
+/**
+ * Analytical output structure representing click metrics for a short link.
+ */
 export interface AnalyticsResult {
+  /** The short code being inspected. */
   shortCode: string;
+  /** Cumulative total clicks recorded for this short code. */
   totalClicks: number;
+  /** Chronological breakdown of click counts per day (YYYY-MM-DD format). */
   clicksByDay: Array<{ day: string; clicks: number }>;
+  /** Top referrer domains sorted by click count (up to 10 entries). */
   topReferrers: Array<{ referrer: string; clicks: number }>;
+  /** Top country codes (ISO alpha-2) sorted by click count (up to 10 entries). */
   topCountries: Array<{ country: string; clicks: number }>;
 }
 
+/** Maximum number of top referrers and countries to return. */
 const TOP_N = 10;
 
-// Aggregation is pushed into Postgres and served by the (link_id, clicked_at)
-// composite index — no SELECT * + in-memory filtering.
+/**
+ * Fetches and aggregates click analytics for a given short code.
+ *
+ * Aggregations are executed directly inside PostgreSQL using `$queryRaw` SQL queries
+ * backed by the `(link_id, clicked_at)` composite index, avoiding full-table scans
+ * or in-memory filtering in Node.js.
+ *
+ * @param shortCode - The unique short code to look up.
+ * @returns Promise resolving to `AnalyticsResult` if found, or `null` if shortCode does not exist.
+ */
 export async function getAnalytics(shortCode: string): Promise<AnalyticsResult | null> {
   const link = await prisma.link.findUnique({
     where: { shortCode },

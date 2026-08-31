@@ -1,9 +1,24 @@
+/**
+ * @file Application Server Entrypoint
+ * @description Boots Fastify HTTP server, initializes datastore connections, and handles graceful shutdown on OS signals.
+ * @module server
+ */
+
 import { buildApp } from './app.js';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { prisma } from './db.js';
 import { redis, initRedis } from './redis.js';
 
+/**
+ * Main application bootstrap function.
+ *
+ * Sequence:
+ * 1. Best-effort Redis initial connection (`initRedis()`).
+ * 2. Builds Fastify app instance (`buildApp()`).
+ * 3. Listens on configured host/port (`config.HOST`, `config.PORT`).
+ * 4. Registers `SIGTERM` and `SIGINT` signal handlers for graceful shutdown (draining requests, closing DB/Redis pools).
+ */
 async function main(): Promise<void> {
   // Best-effort Redis connect; never blocks startup (graceful degradation).
   await initRedis();
